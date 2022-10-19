@@ -1,0 +1,31 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'helm-pod'
+      containerTemplate {
+        name 'helm-pod'
+        image 'devk8sops/custom-helm:v1'
+        ttyEnabled true
+        command 'cat'
+      }
+    }
+  }
+  stages {
+    stage('Run helm') {
+      steps {
+        container('helm-pod') {
+          sh '''
+          mkdir ~/.kube
+          sshpass -p "vagrant" scp  -o 'StrictHostKeyChecking no' vagrant@10.0.0.10:/home/vagrant/.kube/config ~/.kube
+          pwd
+          ls -al
+          helm ls -A
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm upgrade --install redis -f application/redis/values.yaml --create-namespace --namespace redis bitnami/redis
+          echo "deployed!"
+          '''
+        }
+      }
+    }
+  }
+}
